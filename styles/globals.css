@@ -1,0 +1,122 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+* {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+html, body {
+  background-color: #1c1c1c !important;
+  color: white !important;
+  width: 100%;
+  min-height: 100vh;
+  overflow-x: hidden;
+  font-family: sans-serif;
+}
+
+a {
+  color: #66ccff !important;
+  text-decoration: none;
+}
+
+.layout-container,
+.header-inner,
+.footer-content,
+.content-container {
+  width: 100%;
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 0 20px;
+}
+
+.header-inner {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  border-bottom: 1px solid #444;
+  padding: 20px;
+  position: relative;
+  z-index: 10;
+}
+
+img, video, iframe, figure, .wp-block-image {
+  max-width: 100% !important;
+  height: auto !important;
+  width: auto !important;
+  display: block;
+  margin: 30px auto;
+}
+
+@media (min-width: 971px) {
+  div[id^="div-gpt-ad"] {
+    width: 970px;
+    height: 250px;
+    margin: 20px auto;
+    overflow: hidden;
+  }
+  iframe[id^="google_ads_iframe"] {
+    width: 970px !important;
+    height: 250px !important;
+    max-width: none !important;
+  }
+}
+
+@media (min-width: 769px) and (max-width: 970px) {
+  div[id^="div-gpt-ad"] {
+    width: 728px;
+    height: 90px;
+    margin: 20px auto;
+    overflow: hidden;
+  }
+  iframe[id^="google_ads_iframe"] {
+    width: 728px !important;
+    height: 90px !important;
+    max-width: none !important;
+  }
+}
+
+@media (max-width: 768px) {
+  .header-inner {
+    flex-direction: column;
+    gap: 15px;
+    text-align: center;
+  }
+
+  div[id^="div-gpt-ad"] {
+    width: 300px;
+    height: 250px;
+    margin: 20px auto;
+    overflow: hidden;
+  }
+  iframe[id^="google_ads_iframe"] {
+    width: 300px !important;
+    height: 250px !important;
+    max-width: none !important;
+  }
+
+  .layout-container,
+  .content-container {
+    padding: 0 15px;
+  }
+}
+
+.article-body p,
+.article-body h2,
+.article-body li {
+  max-width: 1024px;
+  margin-left: auto;
+  margin-right: auto;
+  line-height: 1.8;
+  font-size: 1.1rem;
+}
+
+@media (max-width: 768px) {
+  .article-body p,
+  .article-body h2,
+  .article-body li {
+    max-width: 100%;
+    font-size: 1rem;
+  }
+}

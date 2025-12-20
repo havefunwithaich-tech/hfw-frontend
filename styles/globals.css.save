@@ -1,0 +1,8 @@
+/* styles/globals.css */
+
+/* 1. 基礎設定 */
+* {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}

@@ -1,0 +1,9 @@
+# *
+User-agent: *
+Allow: /
+
+# Host
+Host: https://hq.havefunwithaich.com
+
+# Sitemaps
+Sitemap: https://hq.havefunwithaich.com/sitemap.xml

@@ -1,0 +1,35 @@
+name: CI
+
+on:
+  push:
+    branches:
+      - main
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    env:
+      # よくある名前を全部並べる「数撃ちゃ当たる」作戦
+      WP_GRAPHQL_URL: "https://hq.havefunwithaich.com/graphql"
+      WP_USER_TOKEN: ${{ secrets.WP_USER_TOKEN }}
+      WORDPRESS_AUTH_REFRESH_TOKEN: ${{ secrets.WP_USER_TOKEN }}
+      NEXT_PUBLIC_WORDPRESS_AUTH_REFRESH_TOKEN: ${{ secrets.WP_USER_TOKEN }}
+      WORDPRESS_API_TOKEN: ${{ secrets.WP_USER_TOKEN }}
+
+    steps:
+      - uses: actions/checkout@v3
+      
+      - uses: actions/setup-node@v3
+        with:
+          node-version: '20.9.0'
+          
+      - run: npm install
+      
+      - run: npm run build
+        env:
+          # ここにも念のため全部並べる
+          WP_GRAPHQL_URL: "https://hq.havefunwithaich.com/graphql"
+          WP_USER_TOKEN: ${{ secrets.WP_USER_TOKEN }}
+          WORDPRESS_AUTH_REFRESH_TOKEN: ${{ secrets.WP_USER_TOKEN }}
+          NEXT_PUBLIC_WORDPRESS_AUTH_REFRESH_TOKEN: ${{ secrets.WP_USER_TOKEN }}
+          WORDPRESS_API_TOKEN: ${{ secrets.WP_USER_TOKEN }}
