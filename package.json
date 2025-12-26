@@ -11,6 +11,7 @@
   },
   "dependencies": {
     "graphql-request": "^7.3.4",
+    "gray-matter": "^4.0.3",
     "lucide-react": "^0.561.0",
     "marked": "^17.0.1",
     "micro": "^10.0.1",

@@ -1,48 +1,39 @@
-import { GraphQLClient, gql } from 'graphql-request';
 import Link from 'next/link';
 import { useState } from 'react';
 
-// ★修正: 向き先をHQではなく、本番の www.havefunwithaich.com へ変更
-const endpoint = 'https://www.havefunwithaich.com/graphql';
-const graphQLClient = new GraphQLClient(endpoint);
+// fs, path, matter は Cloudflareビルドで事故の元なので削除
+// import fs from 'fs';
+// import path from 'path';
+// import matter from 'gray-matter';
 
 export async function getStaticProps() {
-  // ★修正: クエリ内で substring は使えないので、素直に content を取得します
-  const query = gql`
-    query GetArticles {
-      posts(first: 50, where: { orderby: { field: DATE, order: DESC } }) {
-        nodes {
-          slug
-          title
-          date
-          content 
-          featuredImage {
-            node {
-              sourceUrl
-            }
-          }
-        }
-      }
-    }
-  `;
+  // 【V1.3修正】
+  // ファイルシステムやDBを見に行かず、固定の「メンテナンス用データ」を配列で作る
+  // これならサーバー環境に依存せず、100%ビルドが通ります。
+  
+  const posts = [
+    {
+      slug: 'maintenance-info',
+      title: 'Currently under maintenance',
+      date: new Date().toISOString(),
+      // HTMLタグを含めておけば createSnippet も動きます
+      content: '<p>We are currently performing system maintenance. The HQ server will be back online shortly. Please wait a moment.</p>',
+      featuredImage: null, // 画像もなし（エラー回避）
+    },
+    // 必要ならここに2つ目のダミー記事を追加してもOK
+  ];
 
-  const data = await graphQLClient.request(query);
   return {
     props: {
-      posts: data.posts.nodes,
+      posts: posts,
     },
-    revalidate: 60,
   };
 }
 
-// ★追加: 本文から好きな長さの抜粋を作るヘルパー関数
 const createSnippet = (htmlContent, length = 150) => {
   if (!htmlContent) return "";
-  // 1. HTMLタグを除去
   let text = htmlContent.replace(/<[^>]+>/g, '');
-  // 2. 改行や連続する空白を整理
   text = text.replace(/\s+/g, ' ').trim();
-  // 3. 指定文字数でカットし、末尾に ... をつける
   return text.length > length ? text.substring(0, length) + '...' : text;
 };
 
@@ -55,7 +46,7 @@ export default function Articles({ posts }) {
 
   return (
     <div className="articles-container">
-      <h1 className="page-title">Articles</h1>
+      <h1 className="page-title">Articles (Backup Mode)</h1>
 
       <div className="articles-grid">
         {posts.slice(0, visibleCount).map((post) => (
@@ -70,14 +61,13 @@ export default function Articles({ posts }) {
                       className="article-image"
                     />
                   ) : (
-                    <div className="no-image">No Image</div>
+                    <div className="no-image">Maintenance</div>
                   )}
                 </div>
 
                 <div className="card-content">
                   <h3 className="card-title">{post.title}</h3>
                   
-                  {/* ★修正: 自作関数で長めの抜粋を表示（ここでは200文字に設定） */}
                   <div className="card-excerpt">
                       {createSnippet(post.content, 200)}
                   </div>
@@ -92,6 +82,7 @@ export default function Articles({ posts }) {
         ))}
       </div>
 
+      {/* 記事数が少ないのでLoad Moreは出ないはずですが、ロジックは残しておきます */}
       {visibleCount < posts.length && (
         <div className="load-more-container">
           <button onClick={showMore} className="load-more-btn">
@@ -100,7 +91,6 @@ export default function Articles({ posts }) {
         </div>
       )}
 
-      {/* スタイルの定義 */}
       <style jsx>{`
         .articles-container {
           padding: 40px 20px;
@@ -110,27 +100,23 @@ export default function Articles({ posts }) {
           box-sizing: border-box; 
           width: 100%;
         }
-
         .page-title {
           text-align: center;
           margin-bottom: 40px;
           font-size: 2.5rem;
           color: #fff;
         }
-
         .articles-grid {
           display: grid;
           grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
           gap: 30px;
           width: 100%;
         }
-
         .article-card-link {
           text-decoration: none;
           color: inherit;
           display: block;
         }
-
         .article-card {
           border: 1px solid #333;
           border-radius: 10px;
@@ -144,25 +130,21 @@ export default function Articles({ posts }) {
           display: flex;
           flex-direction: column;
         }
-
         .article-card:hover {
           transform: translateY(-5px);
         }
-
         .image-wrapper {
           height: 200px;
           background-color: #222;
           overflow: hidden;
           width: 100%;
         }
-
         .article-image {
           width: 100%;
           height: 100%;
           object-fit: cover;
           display: block;
         }
-
         .no-image {
           width: 100%;
           height: 100%;
@@ -170,22 +152,21 @@ export default function Articles({ posts }) {
           align-items: center;
           justify-content: center;
           color: #666;
+          font-weight: bold;
+          background: #2a2a2a;
         }
-
         .card-content {
           padding: 20px;
           flex: 1;
           display: flex;
           flex-direction: column;
         }
-
         .card-title {
           margin: 0 0 10px 0;
           font-size: 1.2rem;
           line-height: 1.4;
           color: #fff;
         }
-
         .card-excerpt {
           font-size: 0.9rem;
           color: #bbb;
@@ -194,18 +175,15 @@ export default function Articles({ posts }) {
           overflow: hidden;
           line-height: 1.6;
         }
-
         .card-date {
           font-size: 0.8rem;
           color: #666;
           margin-top: 15px;
         }
-
         .load-more-container {
           text-align: center;
           margin-top: 50px;
         }
-
         .load-more-btn {
           padding: 15px 40px;
           font-size: 1rem;
@@ -219,7 +197,6 @@ export default function Articles({ posts }) {
         .load-more-btn:hover {
           background-color: #444;
         }
-
         @media (max-width: 600px) {
           .articles-container {
             padding: 40px 15px; 
