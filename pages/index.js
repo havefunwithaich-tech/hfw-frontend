@@ -17,7 +17,7 @@ export async function getStaticProps() {
       title: 'Currently under maintenance',
       date: new Date().toISOString(),
       // HTMLタグを含めておけば createSnippet も動きます
-      content: '<p>We are currently performing system maintenance. The HQ server will be back online shortly. Please wait a moment.</p>',
+      content: '<p>We are currently performing system maintenance. The HFW server will be back online shortly. Please wait a moment.</p>',
       featuredImage: null, // 画像もなし（エラー回避）
     },
     // 必要ならここに2つ目のダミー記事を追加してもOK
