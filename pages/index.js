@@ -1,27 +1,44 @@
+import fs from 'fs';
+import path from 'path';
+import matter from 'gray-matter';
 import Link from 'next/link';
 import { useState } from 'react';
 
-// fs, path, matter は Cloudflareビルドで事故の元なので削除
-// import fs from 'fs';
-// import path from 'path';
-// import matter from 'gray-matter';
-
 export async function getStaticProps() {
-  // 【V1.3修正】
-  // ファイルシステムやDBを見に行かず、固定の「メンテナンス用データ」を配列で作る
-  // これならサーバー環境に依存せず、100%ビルドが通ります。
-  
-  const posts = [
-    {
-      slug: 'maintenance-info',
-      title: 'Currently under maintenance',
-      date: new Date().toISOString(),
-      // HTMLタグを含めておけば createSnippet も動きます
-      content: '<p>We are currently performing system maintenance. The HFW server will be back online shortly. </p>',
-      featuredImage: null, // 画像もなし（エラー回避）
-    },
-    // 必要ならここに2つ目のダミー記事を追加してもOK
-  ];
+  const articlesDir = path.join(process.cwd(), 'content/articles');
+  const IMAGE_DIR = '/var/www/html/images';
+  const EXTS = ['webp', 'jpg', 'jpeg', 'png'];
+
+  if (!fs.existsSync(articlesDir)) {
+    return { props: { posts: [] } };
+  }
+
+  const filenames = fs.readdirSync(articlesDir);
+  const posts = filenames
+    .filter((filename) => filename.endsWith('.mdx'))
+    .map((filename) => {
+      const filePath = path.join(articlesDir, filename);
+      const fileContent = fs.readFileSync(filePath, 'utf8');
+      const { data, content } = matter(fileContent);
+      const slug = filename.replace('.mdx', '');
+
+      let resolvedThumbnail = null;
+      for (const ext of EXTS) {
+        if (fs.existsSync(path.join(IMAGE_DIR, `${slug}.${ext}`))) {
+          resolvedThumbnail = `/images/${slug}.${ext}`;
+          break;
+        }
+      }
+
+      return {
+        slug,
+        title: data.title || slug,
+        date: data.date ? new Date(data.date).toISOString() : new Date().toISOString(),
+        content: content,
+        featuredImage: resolvedThumbnail ? { node: { sourceUrl: resolvedThumbnail } } : null,
+      };
+    })
+    .sort((a, b) => new Date(b.date) - new Date(a.date));
 
   return {
     props: {
@@ -46,7 +63,7 @@ export default function Articles({ posts }) {
 
   return (
     <div className="articles-container">
-      <h1 className="page-title">Articles (Backup Mode)</h1>
+      <h1 className="page-title">Articles</h1>
 
       <div className="articles-grid">
         {posts.slice(0, visibleCount).map((post) => (
@@ -61,7 +78,7 @@ export default function Articles({ posts }) {
                       className="article-image"
                     />
                   ) : (
-                    <div className="no-image">Maintenance</div>
+                    <div className="no-image">No Image</div>
                   )}
                 </div>
 
@@ -82,7 +99,6 @@ export default function Articles({ posts }) {
         ))}
       </div>
 
-      {/* 記事数が少ないのでLoad Moreは出ないはずですが、ロジックは残しておきます */}
       {visibleCount < posts.length && (
         <div className="load-more-container">
           <button onClick={showMore} className="load-more-btn">
@@ -152,8 +168,6 @@ export default function Articles({ posts }) {
           align-items: center;
           justify-content: center;
           color: #666;
-          font-weight: bold;
-          background: #2a2a2a;
         }
         .card-content {
           padding: 20px;
