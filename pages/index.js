@@ -2,13 +2,15 @@ import fs from 'fs';
 import path from 'path';
 import matter from 'gray-matter';
 import Link from 'next/link';
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
+
+// ▼▼▼ 環境変数 ▼▼▼
+const HFW_WORKER_URL = process.env.NEXT_PUBLIC_HFW_WORKER_URL;
+// ★修正: GATE_KEY はクライアント側には不要になりました。削除します。
 
 export async function getStaticProps() {
   const articlesDir = path.join(process.cwd(), 'content/articles');
-  const IMAGE_DIR = '/var/www/html/images';
-  const EXTS = ['webp', 'jpg', 'jpeg', 'png'];
-
+  
   if (!fs.existsSync(articlesDir)) {
     return { props: { posts: [] } };
   }
@@ -22,20 +24,16 @@ export async function getStaticProps() {
       const { data, content } = matter(fileContent);
       const slug = filename.replace('.mdx', '');
 
-      let resolvedThumbnail = null;
-      for (const ext of EXTS) {
-        if (fs.existsSync(path.join(IMAGE_DIR, `${slug}.${ext}`))) {
-          resolvedThumbnail = `/images/${slug}.${ext}`;
-          break;
-        }
-      }
+      // 画像の実在確認はせず、WorkerのURL構造を生成して渡すだけ
+      const baseUrl = process.env.NEXT_PUBLIC_HFW_WORKER_URL?.replace(/\/$/, '');
+      const remoteThumbnailUrl = `${baseUrl}/stream/${slug}`;
 
       return {
         slug,
         title: data.title || slug,
         date: data.date ? new Date(data.date).toISOString() : new Date().toISOString(),
         content: content,
-        featuredImage: resolvedThumbnail ? { node: { sourceUrl: resolvedThumbnail } } : null,
+        featuredImageUrl: remoteThumbnailUrl, 
       };
     })
     .sort((a, b) => new Date(b.date) - new Date(a.date));
@@ -54,54 +52,141 @@ const createSnippet = (htmlContent, length = 150) => {
   return text.length > length ? text.substring(0, length) + '...' : text;
 };
 
+// ★修正: 署名付きトークン取得 → 画像取得 の2段階認証コンポーネント
+const SecureImage = ({ src, slug, alt, className }) => {
+  const [objectUrl, setObjectUrl] = useState(null);
+
+  useEffect(() => {
+    // slugが無い場合は何もしない（srcだけ渡されてもトークンが作れないためslug必須）
+    if (!src || !slug) return;
+
+    let active = true;
+    const fetchImage = async () => {
+      try {
+        // 1. Next.js APIからトークン(手形)をもらう
+        const tokenRes = await fetch(`/api/token?rid=${slug}`);
+        if (!tokenRes.ok) throw new Error('Token issue failed');
+        const { token } = await tokenRes.json();
+
+        // 2. Workerへトークン付きでリクエスト
+        const imageRes = await fetch(src, {
+          headers: { 'X-HFW-Token': token } // 修正: X-HFW-Gate-Key ではなく Token
+        });
+
+        if (imageRes.ok && active) {
+          const blob = await imageRes.blob();
+          const url = URL.createObjectURL(blob);
+          setObjectUrl(url);
+        }
+      } catch (e) {
+        // エラー時はコンソールに出さず静かに失敗（ユーザーにはローディングか空白）
+      }
+    };
+
+    fetchImage();
+    return () => {
+      active = false;
+      if (objectUrl) URL.revokeObjectURL(objectUrl);
+    };
+  }, [src, slug]);
+
+  if (!objectUrl) return <div className="no-image">Checking...</div>;
+
+  return <img src={objectUrl} alt={alt} className={className} />;
+};
+
 export default function Articles({ posts }) {
   const [visibleCount, setVisibleCount] = useState(6);
+  const [heroImageSrc, setHeroImageSrc] = useState(null);
 
   const showMore = () => {
     setVisibleCount((prev) => prev + 6);
   };
 
+  const HERO_SLUG = "IL041";
+  
+  // ★修正: ヒーロー画像もトークン方式へ変更
+  useEffect(() => {
+    if (!HFW_WORKER_URL) return;
+
+    const fetchHeroImage = async () => {
+      try {
+        // 1. トークン発行
+        const tokenRes = await fetch(`/api/token?rid=${HERO_SLUG}`);
+        if (!tokenRes.ok) return;
+        const { token } = await tokenRes.json();
+
+        // 2. Workerへリクエスト
+        const baseUrl = HFW_WORKER_URL.endsWith('/') ? HFW_WORKER_URL.slice(0, -1) : HFW_WORKER_URL;
+        const targetUrl = `${baseUrl}/stream/${HERO_SLUG}`;
+        
+        const res = await fetch(targetUrl, {
+          method: 'GET',
+          headers: {
+            'X-HFW-Token': token // 修正: Tokenヘッダーを使用
+          }
+        });
+
+        if (!res.ok) return;
+
+        const blob = await res.blob();
+        const objectUrl = URL.createObjectURL(blob);
+        setHeroImageSrc(objectUrl);
+
+      } catch (error) {
+        console.error("Hero Fetch Error:", error);
+      }
+    };
+
+    fetchHeroImage();
+
+    return () => {
+      if (heroImageSrc) URL.revokeObjectURL(heroImageSrc);
+    };
+  }, []); 
+
   return (
-     <div className="main-container"> 
-     <section className="hero-section">
+    <div className="main-container"> 
+      <section className="hero-section">
         <div className="hero-bg">
-          <img src="https://assets.havefunwithaich.com/gazoo/hfw-top-hero.jpg" alt="Hero" className="hero-img" />
+          {heroImageSrc && (
+            <img 
+              src={heroImageSrc} 
+              alt="Hero IL041" 
+              className="hero-img" 
+            />
+          )}
         </div>
         <div className="hero-overlay"></div>
         <div className="hero-content-wrapper">
           <div className="hero-frame">
+            <p className="hero-title">Pirate</p>
             <h1 className="hero-title">havefunwithAIch v1.3</h1>
-            <p className="hero-subtitle">FORGING THE UNBREAKABLE CHARACTER</p>
+            <p className="hero-subtitle">NO FLAG LOWERED</p>
           </div>
         </div>
       </section>
 
       <div className="articles-container">
-       
         <div className="articles-grid">
           {posts.slice(0, visibleCount).map((post) => (
             <Link href={`/articles/${post.slug}`} key={post.slug} legacyBehavior>
               <a className="article-card-link">
                 <div className="article-card">
                   <div className="image-wrapper">
-                    {post.featuredImage ? (
-                      <img
-                        src={post.featuredImage.node.sourceUrl}
-                        alt={post.title}
-                        className="article-image"
-                      />
-                    ) : (
-                      <div className="no-image">No Image</div>
-                    )}
+                     {/* ★修正: slugを明示的に渡す必要があります */}
+                     <SecureImage 
+                       src={post.featuredImageUrl}
+                       slug={post.slug} 
+                       alt={post.title} 
+                       className="article-image" 
+                     />
                   </div>
-
                   <div className="card-content">
                     <h3 className="card-title">{post.title}</h3>
-                    
                     <div className="card-excerpt">
                         {createSnippet(post.content, 200)}
                     </div>
-
                     <p className="card-date">
                       {new Date(post.date).toLocaleDateString()}
                     </p>
@@ -111,7 +196,6 @@ export default function Articles({ posts }) {
             </Link>
           ))}
         </div>
-
         {visibleCount < posts.length && (
           <div className="load-more-container">
             <button onClick={showMore} className="load-more-btn">
@@ -120,12 +204,15 @@ export default function Articles({ posts }) {
           </div>
         )}
       </div>
-
+      
+      {/* CSS部分はそのまま */}
       <style jsx>{`
+        /* ... (元のCSSをそのまま維持してください) ... */
         .main-container { background-color: #000; color: #fff; }
         .hero-section { position: relative; width: 100%; height: min(100vh, 720px); min-height: 500px; display: flex; align-items: center; justify-content: center; overflow: hidden; }
         .hero-bg { position: absolute; inset: 0; width: 100%; height: 100%; z-index: 0; }
-        .hero-img { width: 100%; height: 100%; object-fit: cover; display: block; }
+        .hero-img { width: 100%; height: 100%; object-fit: cover; display: block; animation: fadeIn 1s ease-in; }
+        @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
         .hero-overlay { position: absolute; inset: 0; background: linear-gradient(180deg, rgba(0,0,0,0.4) 0%, rgba(0,0,0,0.85) 100%); z-index: 1; }
         .hero-content-wrapper { position: relative; z-index: 10; width: 100%; display: flex; justify-content: center; }
         .hero-frame { border: 3px solid rgba(255, 255, 255, 0.8); padding: 40px 60px; text-align: center; background: rgba(0, 0, 0, 0.4); backdrop-filter: blur(5px); max-width: 800px; width: 90%; }

@@ -69,8 +69,8 @@ export default function Layout({ children, title = 'havefunwithAIch Headquarters
               <Link href="/" className="logo-link">havefunwithAIch</Link>
             </h1>
             <nav className="main-nav">
-              <Link href="/" className="nav-link">HOME</Link>
-              <a href="https://hq.havefunwithaich.com/" className="nav-link">HQ havefunwithAIch</a>
+              <a href="/videos/" className="nav-link">Videos</a>
+              <a href="/articles/" className="nav-link">Articles</a>
             </nav>          </div>
           <div className="header-right">
             {loadingUser ? null : user ? (
