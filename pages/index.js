@@ -62,52 +62,80 @@ export default function Articles({ posts }) {
   };
 
   return (
-    <div className="articles-container">
-      <h1 className="page-title">Articles</h1>
+     <div className="main-container"> 
+     <section className="hero-section">
+        <div className="hero-bg">
+          <img src="https://assets.havefunwithaich.com/gazoo/hfw-top-hero.jpg" alt="Hero" className="hero-img" />
+        </div>
+        <div className="hero-overlay"></div>
+        <div className="hero-content-wrapper">
+          <div className="hero-frame">
+            <h1 className="hero-title">havefunwithAIch v1.3</h1>
+            <p className="hero-subtitle">FORGING THE UNBREAKABLE CHARACTER</p>
+          </div>
+        </div>
+      </section>
 
-      <div className="articles-grid">
-        {posts.slice(0, visibleCount).map((post) => (
-          <Link href={`/articles/${post.slug}`} key={post.slug} legacyBehavior>
-            <a className="article-card-link">
-              <div className="article-card">
-                <div className="image-wrapper">
-                  {post.featuredImage ? (
-                    <img
-                      src={post.featuredImage.node.sourceUrl}
-                      alt={post.title}
-                      className="article-image"
-                    />
-                  ) : (
-                    <div className="no-image">No Image</div>
-                  )}
-                </div>
-
-                <div className="card-content">
-                  <h3 className="card-title">{post.title}</h3>
-                  
-                  <div className="card-excerpt">
-                      {createSnippet(post.content, 200)}
+      <div className="articles-container">
+       
+        <div className="articles-grid">
+          {posts.slice(0, visibleCount).map((post) => (
+            <Link href={`/articles/${post.slug}`} key={post.slug} legacyBehavior>
+              <a className="article-card-link">
+                <div className="article-card">
+                  <div className="image-wrapper">
+                    {post.featuredImage ? (
+                      <img
+                        src={post.featuredImage.node.sourceUrl}
+                        alt={post.title}
+                        className="article-image"
+                      />
+                    ) : (
+                      <div className="no-image">No Image</div>
+                    )}
                   </div>
 
-                  <p className="card-date">
-                    {new Date(post.date).toLocaleDateString()}
-                  </p>
+                  <div className="card-content">
+                    <h3 className="card-title">{post.title}</h3>
+                    
+                    <div className="card-excerpt">
+                        {createSnippet(post.content, 200)}
+                    </div>
+
+                    <p className="card-date">
+                      {new Date(post.date).toLocaleDateString()}
+                    </p>
+                  </div>
                 </div>
-              </div>
-            </a>
-          </Link>
-        ))}
+              </a>
+            </Link>
+          ))}
+        </div>
+
+        {visibleCount < posts.length && (
+          <div className="load-more-container">
+            <button onClick={showMore} className="load-more-btn">
+              Load More
+            </button>
+          </div>
+        )}
       </div>
 
-      {visibleCount < posts.length && (
-        <div className="load-more-container">
-          <button onClick={showMore} className="load-more-btn">
-            Load More
-          </button>
-        </div>
-      )}
-
       <style jsx>{`
+        .main-container { background-color: #000; color: #fff; }
+        .hero-section { position: relative; width: 100%; height: min(100vh, 720px); min-height: 500px; display: flex; align-items: center; justify-content: center; overflow: hidden; }
+        .hero-bg { position: absolute; inset: 0; width: 100%; height: 100%; z-index: 0; }
+        .hero-img { width: 100%; height: 100%; object-fit: cover; display: block; }
+        .hero-overlay { position: absolute; inset: 0; background: linear-gradient(180deg, rgba(0,0,0,0.4) 0%, rgba(0,0,0,0.85) 100%); z-index: 1; }
+        .hero-content-wrapper { position: relative; z-index: 10; width: 100%; display: flex; justify-content: center; }
+        .hero-frame { border: 3px solid rgba(255, 255, 255, 0.8); padding: 40px 60px; text-align: center; background: rgba(0, 0, 0, 0.4); backdrop-filter: blur(5px); max-width: 800px; width: 90%; }
+        .hero-title { font-size: 3.5rem; margin: 0; font-weight: 800; color: #fff; text-shadow: 0 4px 10px rgba(0,0,0,0.8); }
+        .hero-subtitle { font-size: 1.2rem; margin-top: 20px; color: #ddd; letter-spacing: 0.2em; }
+        @media (max-width: 768px) { 
+          .hero-title { font-size: 1.6rem; word-break: break-word; } 
+          .hero-subtitle { font-size: 0.8rem; margin-top: 10px; letter-spacing: 0.1em; }
+          .hero-frame { padding: 20px 10px; width: 95%; } 
+        }
         .articles-container {
           padding: 40px 20px;
           max-width: 1200px;
