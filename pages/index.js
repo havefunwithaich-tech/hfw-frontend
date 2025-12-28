@@ -11,7 +11,7 @@ import { useState, useEffect } from 'react';
  */
 export async function knockDoor(souvenir = {}) {
   // 1. ドアを叩く（UI → Pages Function）
-  const response = await fetch('/door', {
+  const response = await fetch('/bridge', {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
