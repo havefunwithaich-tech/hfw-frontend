@@ -11,7 +11,7 @@ import { useState, useEffect } from 'react';
  */
 export async function knockDoor(souvenir = {}) {
   // 1. ドアを叩く (Always POST)
-  const response = fetch('/api/', {
+  const response = fetch('/api', {
       method: 'POST',
       headers: {
          'Content-Type': 'application/json',
