@@ -10,33 +10,27 @@ import { useState, useEffect } from 'react';
  * @param {Object} souvenir - { content_id: "...", type: "..." } または {}
  */
 export async function knockDoor(souvenir = {}) {
-  // 1. ドアを叩く (Always POST)
-  const response = fetch('/hq-frontend/', {
-      method: 'POST',
-      headers: {
-         'Content-Type': 'application/json',
-         'X-HFW-Issue-Key': 'IL041'
-  },
-  body: JSON.stringify(souvenir),
-});
+  // 1. ドアを叩く（UI → Pages Function）
+  const response = await fetch('/door', {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      'X-HFW-Issue-Key': 'IL041'
+    },
+    body: JSON.stringify(souvenir),
+  });
 
-  // 2. 門前払いされたら帰る
-  if (!response.ok) {
-    console.error("追い返されました: ", response.status);
-    return null;
-  }
-
-  // 3. 渡されたものを確認する
+  // 2. Worker から返ってきたものの種類を判定
   const contentType = response.headers.get("content-type");
 
+  // 3. 現物支給（画像・動画）
   if (contentType && (contentType.includes("video") || contentType.includes("image"))) {
-    // 現物支給の場合：ブラウザが表示できるURLに変換して渡す
     const blob = await response.blob();
     return URL.createObjectURL(blob);
-  } else {
-    // 情報支給の場合：JSONとして読み取って渡す
-    return await response.json();
   }
+
+  // 4. 情報支給（JSON）
+  return await response.json();
 }
 
 // ▼▼▼ SSG: 記事リストデータ取得 (ここはローカルファイル読み込みのみ) ▼▼▼
