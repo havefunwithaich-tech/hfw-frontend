@@ -1,5 +1,5 @@
 // pages/api/token.js
-export const runtime = 'edge'; // Cloudflareで動かすための宣言
+export const runtime = 'edge'; 
 
 export default async function handler(req) {
   if (req.method !== 'GET') {
