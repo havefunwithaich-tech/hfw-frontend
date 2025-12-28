@@ -64,13 +64,17 @@ const SecureImage = ({ src, slug, alt, className }) => {
     const fetchImage = async () => {
       try {
         // 1. Next.js APIからトークン(手形)をもらう
-        const tokenRes = await fetch(`/api/token?rid=${slug}`);
+        const tokenRes = await fetch(tokenUrl, {
+            headers: {
+                "X-HFW-Issue-Key": process.env.NEXT_PUBLIC_ISSUE_KEY // 環境変数から
+            }
+        });
         if (!tokenRes.ok) throw new Error('Token issue failed');
         const { token } = await tokenRes.json();
 
         // 2. Workerへトークン付きでリクエスト
         const imageRes = await fetch(src, {
-          headers: { 'X-HFW-Token': token } // 修正: X-HFW-Gate-Key ではなく Token
+          headers: { 'X-HFW-Token': token } 
         });
 
         if (imageRes.ok && active) {
