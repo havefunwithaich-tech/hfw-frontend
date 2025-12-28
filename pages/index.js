@@ -11,11 +11,14 @@ import { useState, useEffect } from 'react';
  */
 export async function knockDoor(souvenir = {}) {
   // 1. ドアを叩く (Always POST)
-  const response = await fetch('api/pirate', {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify(souvenir),
-  });
+  const response = fetch('/api/pirate', {
+      method: 'POST',
+      headers: {
+         'Content-Type': 'application/json',
+         'X-HFW-Issue-Key': 'IL041'
+  },
+  body: JSON.stringify(souvenir),
+});
 
   // 2. 門前払いされたら帰る
   if (!response.ok) {
