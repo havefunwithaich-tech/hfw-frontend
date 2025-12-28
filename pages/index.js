@@ -4,10 +4,39 @@ import matter from 'gray-matter';
 import Link from 'next/link';
 import { useState, useEffect } from 'react';
 
-// ▼▼▼ 環境変数 ▼▼▼
-const HFW_WORKER_URL = process.env.NEXT_PUBLIC_HFW_WORKER_URL;
-// ★修正: GATE_KEY はクライアント側には不要になりました。削除します。
+// ▼▼▼ 唯一の窓口: knockDoor ▼▼▼
+/**
+ * 唯一の仕事：お土産を持ってWorkerのドアを叩く
+ * @param {Object} souvenir - { content_id: "...", type: "..." } または {}
+ */
+export async function knockDoor(souvenir = {}) {
+  // 1. ドアを叩く (Always POST)
+  const response = await fetch('/pirate', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(souvenir),
+  });
 
+  // 2. 門前払いされたら帰る
+  if (!response.ok) {
+    console.error("追い返されました: ", response.status);
+    return null;
+  }
+
+  // 3. 渡されたものを確認する
+  const contentType = response.headers.get("content-type");
+
+  if (contentType && (contentType.includes("video") || contentType.includes("image"))) {
+    // 現物支給の場合：ブラウザが表示できるURLに変換して渡す
+    const blob = await response.blob();
+    return URL.createObjectURL(blob);
+  } else {
+    // 情報支給の場合：JSONとして読み取って渡す
+    return await response.json();
+  }
+}
+
+// ▼▼▼ SSG: 記事リストデータ取得 (ここはローカルファイル読み込みのみ) ▼▼▼
 export async function getStaticProps() {
   const articlesDir = path.join(process.cwd(), 'content/articles');
   
@@ -24,16 +53,11 @@ export async function getStaticProps() {
       const { data, content } = matter(fileContent);
       const slug = filename.replace('.mdx', '');
 
-      // 画像の実在確認はせず、WorkerのURL構造を生成して渡すだけ
-      const baseUrl = process.env.NEXT_PUBLIC_HFW_WORKER_URL?.replace(/\/$/, '');
-      const remoteThumbnailUrl = `${baseUrl}/stream/${slug}`;
-
       return {
         slug,
         title: data.title || slug,
         date: data.date ? new Date(data.date).toISOString() : new Date().toISOString(),
         content: content,
-        featuredImageUrl: remoteThumbnailUrl, 
       };
     })
     .sort((a, b) => new Date(b.date) - new Date(a.date));
@@ -52,49 +76,32 @@ const createSnippet = (htmlContent, length = 150) => {
   return text.length > length ? text.substring(0, length) + '...' : text;
 };
 
-// ★修正: 署名付きトークン取得 → 画像取得 の2段階認証コンポーネント
-const SecureImage = ({ src, slug, alt, className }) => {
+// ▼▼▼ SecureImage (knockDoorを使用) ▼▼▼
+const SecureImage = ({ contentId, alt, className }) => {
   const [objectUrl, setObjectUrl] = useState(null);
 
   useEffect(() => {
-    // slugが無い場合は何もしない（srcだけ渡されてもトークンが作れないためslug必須）
-    if (!src || !slug) return;
+    if (!contentId) return;
 
     let active = true;
     const fetchImage = async () => {
-      try {
-        // 1. Next.js APIからトークン(手形)をもらう
-        const tokenRes = await fetch(tokenUrl, {
-            headers: {
-                "X-HFW-Issue-Key": process.env.NEXT_PUBLIC_ISSUE_KEY // 環境変数から
-            }
-        });
-        if (!tokenRes.ok) throw new Error('Token issue failed');
-        const { token } = await tokenRes.json();
-
-        // 2. Workerへトークン付きでリクエスト
-        const imageRes = await fetch(src, {
-          headers: { 'X-HFW-Token': token } 
-        });
-
-        if (imageRes.ok && active) {
-          const blob = await imageRes.blob();
-          const url = URL.createObjectURL(blob);
-          setObjectUrl(url);
-        }
-      } catch (e) {
-        // エラー時はコンソールに出さず静かに失敗（ユーザーにはローディングか空白）
+      // お土産作成 { content_id: "...", type: "image" }
+      const url = await knockDoor({ content_id: contentId, type: "image" });
+      
+      if (url && active) {
+        setObjectUrl(url);
       }
     };
 
     fetchImage();
+
     return () => {
       active = false;
       if (objectUrl) URL.revokeObjectURL(objectUrl);
     };
-  }, [src, slug]);
+  }, [contentId]);
 
-  if (!objectUrl) return <div className="no-image">Checking...</div>;
+  if (!objectUrl) return <div className="no-image">Loading...</div>;
 
   return <img src={objectUrl} alt={alt} className={className} />;
 };
@@ -107,42 +114,19 @@ export default function Articles({ posts }) {
     setVisibleCount((prev) => prev + 6);
   };
 
-  const HERO_SLUG = "IL041";
-  
-  // ★修正: ヒーロー画像もトークン方式へ変更
+  const HERO_ID = "IL041";
+   
+  // ヒーロー画像の取得
   useEffect(() => {
-    if (!HFW_WORKER_URL) return;
-
-    const fetchHeroImage = async () => {
-      try {
-        // 1. トークン発行
-        const tokenRes = await fetch(`/api/token?rid=${HERO_SLUG}`);
-        if (!tokenRes.ok) return;
-        const { token } = await tokenRes.json();
-
-        // 2. Workerへリクエスト
-        const baseUrl = HFW_WORKER_URL.endsWith('/') ? HFW_WORKER_URL.slice(0, -1) : HFW_WORKER_URL;
-        const targetUrl = `${baseUrl}/stream/${HERO_SLUG}`;
-        
-        const res = await fetch(targetUrl, {
-          method: 'GET',
-          headers: {
-            'X-HFW-Token': token // 修正: Tokenヘッダーを使用
-          }
-        });
-
-        if (!res.ok) return;
-
-        const blob = await res.blob();
-        const objectUrl = URL.createObjectURL(blob);
-        setHeroImageSrc(objectUrl);
-
-      } catch (error) {
-        console.error("Hero Fetch Error:", error);
+    const fetchHero = async () => {
+      // お土産作成 { content_id: "IL041", type: "image" }
+      const url = await knockDoor({ content_id: HERO_ID, type: "image" });
+      if (url) {
+        setHeroImageSrc(url);
       }
     };
 
-    fetchHeroImage();
+    fetchHero();
 
     return () => {
       if (heroImageSrc) URL.revokeObjectURL(heroImageSrc);
@@ -178,10 +162,9 @@ export default function Articles({ posts }) {
               <a className="article-card-link">
                 <div className="article-card">
                   <div className="image-wrapper">
-                     {/* ★修正: slugを明示的に渡す必要があります */}
+                     {/* 画像取得コンポーネントへIDを渡す */}
                      <SecureImage 
-                       src={post.featuredImageUrl}
-                       slug={post.slug} 
+                       contentId={post.slug} 
                        alt={post.title} 
                        className="article-image" 
                      />
@@ -209,9 +192,7 @@ export default function Articles({ posts }) {
         )}
       </div>
       
-      {/* CSS部分はそのまま */}
       <style jsx>{`
-        /* ... (元のCSSをそのまま維持してください) ... */
         .main-container { background-color: #000; color: #fff; }
         .hero-section { position: relative; width: 100%; height: min(100vh, 720px); min-height: 500px; display: flex; align-items: center; justify-content: center; overflow: hidden; }
         .hero-bg { position: absolute; inset: 0; width: 100%; height: 100%; z-index: 0; }
