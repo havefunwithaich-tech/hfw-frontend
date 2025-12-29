@@ -63,7 +63,7 @@ export default function Articles({ posts }) {
   };
 
   const HERO_ID = "IL041";
-  const heroImageSrc = `/?content_id=${HERO_ID}&type=image`;
+  const heroImageSrc = `/image?content_id=${HERO_ID}&type=image`;
 
   return (
     <div className="main-container"> 
