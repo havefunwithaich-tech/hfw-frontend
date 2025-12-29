@@ -1,1 +1,0 @@
-export async function onRequestPost(context) { return context.env.pirate_wk.fetch(context.request); }
