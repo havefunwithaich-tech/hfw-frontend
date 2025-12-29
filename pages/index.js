@@ -4,11 +4,6 @@ import matter from 'gray-matter';
 import Link from 'next/link';
 import { useState, useEffect } from 'react';
 
-// ▼▼▼ 唯一の窓口: knockDoor ▼▼▼
-/**
- * 唯一の仕事：お土産を持ってWorkerのドアを叩く
- * @param {Object} souvenir - { content_id: "...", type: "..." } または {}
- */
 export async function knockDoor(souvenir = {}) {
   // 1. ドアを叩く（UI → Pages Function）
   const response = await fetch('/bridge', {
