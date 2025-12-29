@@ -63,17 +63,13 @@ export default function Articles({ posts }) {
   };
 
   const HERO_ID = "IL041";
-  const heroImageSrc = `/?content_id=${HERO_ID}&type=image`;
+  const heroImageSrc = `/api/issue?content_id=${HERO_ID}&type=image`;
 
   return (
     <div className="main-container"> 
       <section className="hero-section">
         <div className="hero-bg">
-            <img 
-              src={heroImageSrc} 
-              alt="Hero IL041" 
-              className="hero-img" 
-            />
+            <img src={heroImageSrc} alt="Hero IL041" className="hero-img" />
         </div>
         <div className="hero-overlay"></div>
         <div className="hero-content-wrapper">
